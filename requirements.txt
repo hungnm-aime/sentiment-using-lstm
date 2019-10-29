@@ -1,0 +1,6 @@
+numpy
+torch
+nltk
+sklearn
+gensim
+bcolz
