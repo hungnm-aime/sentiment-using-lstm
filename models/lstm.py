@@ -47,8 +47,8 @@ class SentimentLSTM(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, input_words):
-        embedded_words = self.embedding_layer(input_words)  # (batch_size, seq_length, embedding_dim)
-        lstm_out, h = self.lstm(embedded_words)  # (batch_size, seq_length, hidden_size)
+        embedded_words = self.embedding_layer(input_words)  # (batch_size, seq_length, embedding_dim) should [seq_length, batch_size, embedding_dim]
+        lstm_out, h = self.lstm(embedded_words)  # (batch_size, seq_length, hidden_size) should [seq_length, batch_size, hidden_size]
         # lstm_out = self.dropout(lstm_out)
         lstm_out = lstm_out.contiguous().view(-1, self.hidden_size)  # (batch_size*seq_length, hidden_size)
         fc_out = self.fc(lstm_out)  # (batch_size*seq_length, n_output)

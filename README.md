@@ -228,3 +228,106 @@ train_x, train_y, valid_x, valid_y, test_x, test_y = split_data(X, y)
 train_loader, valid_loader, test_loader = create_data_loader(train_x, train_y, valid_x, valid_y, test_x, test_y, batch_size=128)
 
 ```
+
+###6. Kiến trúc LSTM
+##
+![Kiến trúc LSTM để phân loại văn bản](imgs/lstm.png)
+
+Các layer trong kiến trúc:
+0. Tokenize: Bước này thực chất không phải là 1 layer trong kiến trúc mạng bởi chúng ta đã thực hiện trong bước tiền xử lý.
+Bước tiền xử lý thực hiện tách từ và convert mỗi token về giá trị integer. 
+
+1. Embedding layer: thực hiện convert mỗi giá trị integer sang embedding có kích thước xác định.
+Cụ thể tầng này sử dụng pre-train glove với kích thước embedding 50, có thể tải glove [tại đây](http://downloads.cs.stanford.edu/nlp/data/glove.6B.zip)
+
+Do embedding của glove là file text, mỗi dòng bao gồm 1 từ và 1 vector tương ứng. Vậy cần xây dựng 1 module với input là word và output sẽ là vector tương ứng 
+(giống như cách thư viện [gensim](https://radimrehurek.com/gensim/models/keyedvectors.html) thực hiện)
+
+*Code dưới đây thực hiện build glove*
+
+```python
+
+def glove_build(path):
+    words = []
+    idx = 0
+    word2idx = {}
+    vectors = bcolz.carray(np.zeros(1), rootdir=f'../dataset/6B.50.dat', mode='w')
+
+    with open(path, 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            values = line.split()
+            word = values[0]
+            words.append(word)
+            word2idx[word] = idx
+            idx += 1
+            vect = np.array(values[1:]).astype(np.float)
+            vectors.append(vect)
+
+    word = '<pad>'
+    words.append(word)
+    word2idx[word] = idx
+    vect = np.random.normal(scale=0.6, size=(EMBEDDING_DIM,))
+    vectors.append(vect)
+
+    vectors = bcolz.carray(vectors[1:].reshape((400002, 50)), rootdir=f'../dataset/6B.50.dat', mode='w')
+    vectors.flush()
+
+    pkl.dump(words, open(f'../dataset/6B.50_words.pkl', 'wb'))
+    pkl.dump(word2idx, open(f'../dataset/6B.50_idx.pkl', 'wb'))
+```
+
+```python
+def glove_load():
+    vectors = bcolz.open(f'../dataset/6B.50.dat')[:]
+    words = pkl.load(open(f'../dataset/6B.50_words.pkl', 'rb'))
+    word2idx = pkl.load(open(f'../dataset/6B.50_idx.pkl', 'rb'))
+
+    glove = {w: vectors[word2idx[w]] for w in words}
+
+    return glove
+```
+
+Sau đó tạo ma trận trọng số như dưới đây
+```python 
+def create_weights_matrix(w2i, i2w, glove):
+    matrix_len = len(w2i)
+    weights_matrix = np.zeros((matrix_len, EMBEDDING_DIM))
+    for i, w in i2w.items():
+        try:
+            weights_matrix[i] = glove[w]
+        except KeyError:
+            weights_matrix[i] = np.random.normal(scale=0.6, size=(EMBEDDING_DIM,))
+    return weights_matrix
+```
+
+Các params input:
+* w2i: bộ word2index mà đã xây dựng trong bước tiền xử lý 
+* i2w: bộ index2word cũng được xây dựng trong bước tiền xử lý. 
+* glove: kết quả trả về của hàm ``glove_lod``
+
+Cuối cùng là xây dựng layer embedding: 
+```python 
+def create_emb_layer(weights_matrix, non_trainable=False):
+    num_embeddings, embedding_dim = weights_matrix.shape[0], weights_matrix.shape[1]
+    emb_layer = nn.Embedding(num_embeddings, embedding_dim)
+    emb_layer.load_state_dict({'weight': weights_matrix})
+    if non_trainable:
+        emb_layer.weight.requires_grad = False
+
+    return emb_layer, num_embeddings, embedding_dim
+
+```
+
+2. LSTM layer: được xác định bởi các params: 
+* ```input_size```: chính là output của tầng embedding, cụ thể embedding_dim = 50
+* ```hidden_size```: Kích thước của tầng hidden
+* ```num_layers```: Số tầng LSTM stack lên nhau
+ 
+3. Fully connected layer: tầng này thực hiện mapping output từ tầng LSTM đến kích thước đầu ra mong muốn
+
+4. Sigmoid activation layer: convert các output sang khoảng 0-1.
+
+5. Output: kết quả của sigmoid tại steptime cuối cùng được xem như là output cuối cùng.
+ 
+ 
