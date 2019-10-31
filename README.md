@@ -331,4 +331,5 @@ def create_emb_layer(weights_matrix, non_trainable=False):
 
 5. Output: kết quả của sigmoid tại steptime cuối cùng được xem như là output cuối cùng.
  
- ## to be continue
+ ## 
+ **Bài viết vẫn đang tiếp tục**
