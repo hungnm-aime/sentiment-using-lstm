@@ -79,7 +79,7 @@ Do data tiếng anh nên chỉ cần tách từ theo khoảng trắng.
 
 Sau đó thực hiện đọc dữ liệu pos và neg đồng thời shuffle.
 
-```
+```python
     X_pos = read_dataset('./imdb.pos.txt')
     X_pos, y_pos = clean_text(X_pos, 1)
 
@@ -103,7 +103,7 @@ Sau đó thực hiện đọc dữ liệu pos và neg đồng thời shuffle.
 Đoạn code trên có thực hiện lưu dữ liệu X, y sau khi xử lý để tránh thời gian xử lý lần sau.
 
 #####Xây dựng từ điển word2idx và idx2word dựa trên tập từ điển của dataset.
-```
+```python
 def build_vocab(X):
     vocab = Counter()
     for x in X:
@@ -117,7 +117,7 @@ def build_vocab(X):
 
 Sau đó lưu lại 
 
-```
+```python
     w2i, i2w = build_vocab(X)
     print(w2i)
     with open('./vocab.pkl', 'wb') as f:
@@ -126,7 +126,7 @@ Sau đó lưu lại
 
 Cuối cùng của bước tiền xử lý đó là convert các từ thành các index tương ứng để phục vụ cho tầng embedding.
 
-```
+```python
 def save_x_y(X, y, w2i):
     """
     lưu X và y dạng index
@@ -148,7 +148,7 @@ Cụ thể cần xác định độ dài của câu cố định (sequence lengt
 ngược lại với các văn bản ngắn hơn seqence length thì sử dụng padding các giá trị 0 ở đầu chuỗi.
 
 ``Code đọc data đã xử lý ở bước 1``
-```
+```python
 def read_X_y():
     with open('../dataset/x_y_index.pkl', 'rb') as f:
         X, y = pkl.load(f)
@@ -156,7 +156,7 @@ def read_X_y():
 ```
 
 
-```
+```python
 def pad_features(X, seq_length):
     X_new = np.zeros((len(X), seq_length), dtype=int)
 
@@ -173,7 +173,8 @@ def pad_features(X, seq_length):
     return X_new
 ```
 
-```X, y = read_X_y()
+```python
+X, y = read_X_y()
    X = pad_features(X=X, seq_length=8)
    print(X[100)
 ```
@@ -182,7 +183,7 @@ def pad_features(X, seq_length):
 ##
 
 Đoạn code dưới đây chia tập data ban đầu thành tập train, valid, test tương ứng với tỉ lệ 8:1:1
-```
+```python
 def split_data(features, encoded_labels):
     encoded_labels = np.array(encoded_labels)
     len_feat = len(features)
@@ -204,7 +205,7 @@ def split_data(features, encoded_labels):
 ##
 Sau khi tạo tập train, valid, test tiếp theo là tạo dataloader cho tập data này
 
-```
+```python
 def create_data_loader(train_x, train_y, valid_x, valid_y, test_x, test_y, batch_size=64):
     train_data = TensorDataset(torch.from_numpy(train_x), torch.from_numpy(train_y))
     valid_data = TensorDataset(torch.from_numpy(valid_x), torch.from_numpy(valid_y))
@@ -219,7 +220,7 @@ def create_data_loader(train_x, train_y, valid_x, valid_y, test_x, test_y, batch
     return train_loader, valid_loader, test_loader
 ```
 
-```
+```python
 X, y = read_X_y()
 X = pad_features(X=X, seq_length=8)
 
